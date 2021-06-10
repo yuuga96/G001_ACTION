@@ -1,0 +1,150 @@
+#include"libOne.h"
+struct COLLISION_RECT {
+    float* px = 0;
+    float* py = 0;
+    float dx = 0;
+    float dy = 0;
+    float w = 0;
+    float h = 0;
+    void setPointer(float* px, float* py) {
+        this->px = px;
+        this->py = py;
+    }
+    float left() {
+        return *px + dx;
+    }
+    float right() {
+        return *px + dx + w;
+    }
+    float top() {
+        return *py + dy;
+    }
+    float bottom() {
+        return *py + dy + h;
+    }
+    void draw() {
+#ifdef _DEBUG
+        fill(0, 128, 0, 128);
+        rect(*px + dx, *py + dy, w, h);
+#endif
+    }
+};
+struct OBSTACLE {
+    int imgIdx = 0;
+    float imgWidth = 0;
+    float imgHeight = 0;
+    float px = 0;
+    float py = 0;
+    float vx = 0;
+    struct COLLISION_RECT cr;
+    void load() {
+        imgIdx = loadImage("assets/pumpkin.png");
+        imgWidth = 364;
+        imgHeight = 300;
+    }
+    void init() {
+        px = width;
+        py = height - imgHeight;
+        vx = -10;
+        cr.setPointer(&px,&py);
+        cr.dx = 30;
+        cr.dy = 50;
+        cr.w = imgWidth - cr.dx*2;
+        cr.h = imgHeight - cr.dy;
+    }
+    void move() {
+        px += vx;
+        if (px < -imgWidth) {
+            px = width;
+        }
+    }
+    void draw() {
+        image(imgIdx, px, py);
+        cr.draw();
+    }
+};
+struct PLAYER {
+    int imgIdx = 0;
+    float imgWidth = 0;
+    float imgHeight = 0;
+    float px = 0;
+    float py = 0;
+    float vx = 0;
+    float vy = 0;
+    float initVy = 0;
+    float gravity = 0;
+    int jumpFlag = 0;
+    struct COLLISION_RECT cr;
+    void load() {
+        imgIdx = loadImage("assets/witch.png");
+        imgWidth = 223;
+        imgHeight = 500;
+    }
+    void init() {
+        px = 400;
+        py = height - imgHeight;
+        vx = 2;
+        initVy = -50;
+        gravity = 2;
+        jumpFlag = 0;
+        cr.setPointer(&px, &py);
+        cr.dx = 83;
+        cr.dy = 0;
+        cr.w = imgWidth - cr.dx * 2 +6;
+        cr.h = imgHeight - cr.dy;
+    }
+    void move() {
+        px += vx;
+        if (jumpFlag == 0) {
+            if (isTrigger(KEY_SPACE)) {
+                vy = initVy;
+                jumpFlag = 1;
+            }
+        }
+        if (jumpFlag == 1) {
+            //最初は上方向、やがて下方向に移動
+            py += vy;
+            vy += gravity;
+            //着地
+            float limmitPy = height - imgHeight;
+            if (py > limmitPy) {
+                py = limmitPy;
+                jumpFlag = 0;
+            }
+        }
+    }
+    void draw() {
+        image(imgIdx, px, py);
+        cr.draw();
+    }
+};
+bool collision(struct PLAYER* p, struct OBSTACLE* o) {
+    return !(
+        p->cr.right() < o->cr.left() ||
+        o->cr.right() < p->cr.left() ||
+        p->cr.bottom() < o->cr.top() ||
+        o->cr.bottom() < p->cr.top()
+    );
+}
+void gmain() {
+    window(1920, 1080, full);
+    COLOR backColor(70, 0, 70);
+    struct OBSTACLE obstacle;
+    struct PLAYER player;
+    obstacle.load();
+    player.load();
+    obstacle.init();
+    player.init();
+    repeat() {
+        obstacle.move();
+        player.move();
+        if (collision(&player, &obstacle)) {
+            clear(255, 0, 0);
+        }
+        else {
+            clear(backColor);
+        }
+        obstacle.draw();
+        player.draw();
+    }
+}
